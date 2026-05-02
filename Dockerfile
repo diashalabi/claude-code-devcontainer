@@ -80,6 +80,9 @@ RUN curl -fsSL https://claude.ai/install.sh | bash && \
   claude plugin marketplace add trailofbits/skills && \
   claude plugin marketplace add trailofbits/skills-curated
 
+# Install OpenCode natively
+RUN curl -fsSL https://opencode.ai/install | bash
+
 # Install Python 3.13 via uv (fast binary download, not source compilation)
 RUN uv python install 3.13 --default
 

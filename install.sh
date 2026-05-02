@@ -126,7 +126,9 @@ extract_mounts_to_file() {
         (contains("target=/home/vscode/.claude,") | not) and
         (contains("target=/home/vscode/.config/gh,") | not) and
         (contains("target=/home/vscode/.gitconfig,") | not) and
-        (contains("target=/workspace/.devcontainer,") | not)
+        (contains("target=/workspace/.devcontainer,") | not) and
+        (contains("target=/home/vscode/.config/opencode,") | not) and
+        (contains("target=/home/vscode/.local/share/opencode,") | not)
       )
     ) | if length > 0 then . else empty end
   ' "$devcontainer_json" 2>/dev/null) || true
@@ -295,7 +297,12 @@ cmd_upgrade() {
 
   devcontainer exec --workspace-folder "$workspace_folder" claude update
 
-  log_success "Claude Code upgraded"
+  log_info "Upgrading OpenCode..."
+
+  devcontainer exec --workspace-folder "$workspace_folder" \
+    bash -c "curl -fsSL https://opencode.ai/install | bash"
+
+  log_success "Agents upgraded"
 }
 
 cmd_mount() {

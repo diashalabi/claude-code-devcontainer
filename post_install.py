@@ -118,6 +118,49 @@ def setup_claude_settings():
     )
 
 
+def setup_opencode_settings():
+    """Configure OpenCode with permissions set to allow-all.
+
+    Mirrors Claude Code's bypassPermissions behavior. The container is the
+    security boundary, so prompting for permission inside it would just be
+    friction without adding safety.
+    """
+    opencode_dir = Path(
+        os.environ.get("OPENCODE_CONFIG_DIR", Path.home() / ".config" / "opencode")
+    )
+    opencode_dir.mkdir(parents=True, exist_ok=True)
+
+    config_file = opencode_dir / "opencode.json"
+
+    # Load existing config or start fresh
+    config = {}
+    if config_file.exists():
+        with contextlib.suppress(json.JSONDecodeError):
+            config = json.loads(config_file.read_text())
+
+    # Ensure schema reference is set (helps editor tooling, harmless otherwise)
+    config["$schema"] = "https://opencode.ai/config.json"
+
+    # Set allow-all permissions, with a couple of belt-and-suspenders denies
+    # for shell commands. These shouldn't matter (the container catches them
+    # anyway) but they document intent.
+    config["permission"] = {
+        "*": "allow",
+        "bash": {
+            "*": "allow",
+            "rm -rf /*": "deny",
+            "curl * | sh": "deny",
+            "wget * | sh": "deny",
+        },
+    }
+
+    config_file.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    print(
+        f"[post_install] OpenCode settings configured: {config_file}", file=sys.stderr
+    )
+
+
+
 def setup_tmux_config():
     """Configure tmux with 200k history, mouse support, and vi keys."""
     tmux_conf = Path.home() / ".tmux.conf"
@@ -174,6 +217,8 @@ def fix_directory_ownership():
         Path.home() / ".claude",
         Path("/commandhistory"),
         Path.home() / ".config" / "gh",
+        Path.home() / ".config" / "opencode",
+        Path.home() / ".local" / "share" / "opencode",
     ]
 
     for dir_path in dirs_to_fix:
@@ -216,6 +261,9 @@ def setup_global_gitignore():
     patterns = """\
 # Claude Code
 .claude/
+
+# OpenCode
+.opencode/
 
 # macOS
 .DS_Store
@@ -298,6 +346,7 @@ def main():
 
     setup_onboarding_bypass()
     setup_claude_settings()
+    setup_opencode_settings()
     setup_tmux_config()
     fix_directory_ownership()
     setup_global_gitignore()
