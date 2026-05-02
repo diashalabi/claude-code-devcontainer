@@ -74,7 +74,7 @@ WORKDIR /workspace
 USER vscode
 
 # Set PATH early so claude and other user-installed binaries are available
-ENV PATH="/home/vscode/.local/bin:$PATH"
+ENV PATH="/home/vscode/.local/bin:/home/vscode/.opencode/bin:$PATH"
 
 # Install Claude Code natively with marketplace plugins
 RUN curl -fsSL https://claude.ai/install.sh | bash && \
