@@ -160,7 +160,6 @@ def setup_opencode_settings():
     )
 
 
-
 def setup_tmux_config():
     """Configure tmux with 200k history, mouse support, and vi keys."""
     tmux_conf = Path.home() / ".tmux.conf"
@@ -340,6 +339,75 @@ node_modules/
     )
 
 
+def setup_caveman():
+    """Install Caveman skill for installed agents.
+
+    Caveman is a token-compression skill that auto-detects every supported
+    agent on the machine. For our container that means both Claude Code
+    (plugin + hooks + statusline + MCP shrink) and OpenCode (plugin +
+    AGENTS.md + opencode.json entries).
+
+    See https://github.com/JuliusBrussee/caveman
+    """
+    # Check both flag files: Claude's at ~/.claude/.caveman-active and
+    # OpenCode's at its config location. If either is missing, run installer.
+    claude_flag = Path(
+        os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude")
+    ) / ".caveman-active"
+    opencode_plugin = Path.home() / ".config" / "opencode" / "plugins" / "caveman"
+
+    if claude_flag.exists() and opencode_plugin.exists():
+        print(
+            "[post_install] Caveman already installed for both agents, skipping",
+            file=sys.stderr,
+        )
+        return
+
+    print(
+        "[post_install] Installing Caveman skill for all detected agents...",
+        file=sys.stderr,
+    )
+    try:
+        # Source fnm so Node is on PATH. The install script needs Node >= 18.
+        cmd = (
+            'export FNM_DIR="$HOME/.fnm" && '
+            'export PATH="$FNM_DIR:$PATH" && '
+            'eval "$(fnm env)" && '
+            "curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh "
+            "| bash -s -- --non-interactive"
+        )
+        result = subprocess.run(
+            ["bash", "-c", cmd],
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+        if result.returncode != 0:
+            print(
+                f"[post_install] Caveman install exited {result.returncode}",
+                file=sys.stderr,
+            )
+            if result.stderr.strip():
+                print(
+                    f"[post_install] stderr: {result.stderr.strip()}",
+                    file=sys.stderr,
+                )
+        else:
+            print(
+                "[post_install] Caveman installed successfully", file=sys.stderr
+            )
+    except subprocess.TimeoutExpired:
+        print(
+            "[post_install] Caveman install timed out after 180s",
+            file=sys.stderr,
+        )
+    except (FileNotFoundError, OSError) as e:
+        print(
+            f"[post_install] Warning: could not install Caveman ({e})",
+            file=sys.stderr,
+        )
+
+
 def main():
     """Run all post-install configuration."""
     print("[post_install] Starting post-install configuration...", file=sys.stderr)
@@ -350,6 +418,7 @@ def main():
     setup_tmux_config()
     fix_directory_ownership()
     setup_global_gitignore()
+    setup_caveman()
 
     print("[post_install] Configuration complete!", file=sys.stderr)
 
