@@ -367,7 +367,8 @@ def setup_caveman():
             'export FNM_DIR="$HOME/.fnm" && '
             'export PATH="$FNM_DIR:$PATH" && '
             'eval "$(fnm env)" && '
-            "npx -y github:JuliusBrussee/caveman -- --only opencode --non-interactive"
+            "curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh "
+            "| bash -s -- --only opencode --non-interactive"
         )
         result = subprocess.run(
             ["bash", "-c", cmd],
