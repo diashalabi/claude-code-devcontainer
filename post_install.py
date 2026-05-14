@@ -340,41 +340,34 @@ node_modules/
 
 
 def setup_caveman():
-    """Install Caveman skill for installed agents.
+    """Install Caveman skill for OpenCode only.
 
-    Caveman is a token-compression skill that auto-detects every supported
-    agent on the machine. For our container that means both Claude Code
-    (plugin + hooks + statusline + MCP shrink) and OpenCode (plugin +
-    AGENTS.md + opencode.json entries).
+    Caveman is a token-compression skill. We install it scoped to OpenCode
+    (--only opencode), which adds a plugin at ~/.config/opencode/plugins/caveman/,
+    an AGENTS.md block, and entries in opencode.json. Claude is intentionally
+    excluded.
 
     See https://github.com/JuliusBrussee/caveman
     """
-    # Check both flag files: Claude's at ~/.claude/.caveman-active and
-    # OpenCode's at its config location. If either is missing, run installer.
-    claude_flag = Path(
-        os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude")
-    ) / ".caveman-active"
     opencode_plugin = Path.home() / ".config" / "opencode" / "plugins" / "caveman"
-
-    if claude_flag.exists() and opencode_plugin.exists():
+    if opencode_plugin.exists():
         print(
-            "[post_install] Caveman already installed for both agents, skipping",
+            "[post_install] Caveman already installed for OpenCode, skipping",
             file=sys.stderr,
         )
         return
 
     print(
-        "[post_install] Installing Caveman skill for all detected agents...",
+        "[post_install] Installing Caveman skill for OpenCode...",
         file=sys.stderr,
     )
     try:
-        # Source fnm so Node is on PATH. The install script needs Node >= 18.
+        # Source fnm so Node is on PATH. Caveman's installer needs Node >= 18.
         cmd = (
             'export FNM_DIR="$HOME/.fnm" && '
             'export PATH="$FNM_DIR:$PATH" && '
             'eval "$(fnm env)" && '
-            "curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh "
-            "| bash -s -- --non-interactive"
+            "npx -y github:JuliusBrussee/caveman -- --only opencode --non-interactive"
         )
         result = subprocess.run(
             ["bash", "-c", cmd],
@@ -394,7 +387,8 @@ def setup_caveman():
                 )
         else:
             print(
-                "[post_install] Caveman installed successfully", file=sys.stderr
+                "[post_install] Caveman installed successfully for OpenCode",
+                file=sys.stderr,
             )
     except subprocess.TimeoutExpired:
         print(
